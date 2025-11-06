@@ -1,6 +1,4 @@
-https://mangurajubhukya-cmyk.github.io/Play-Chess-game-/
 
-# Play-Chess-game-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -432,7 +430,8 @@ https://mangurajubhukya-cmyk.github.io/Play-Chess-game-/
             validMoves = [];
             message = promoted ? `${getPieceColor(movedPiece).toUpperCase()} Pawn Promoted!` : '';
             
-            renderPage(); // Rerender the current view
+            // --- CRITICAL FIX: The function call below was in the original code, but the function itself was missing. ---
+            renderPage(); 
             
             if (!gameOver && turn === 'black' && gameMode === 'ai') {
                 setTimeout(handleAITurn, 500);
@@ -485,7 +484,8 @@ https://mangurajubhukya-cmyk.github.io/Play-Chess-game-/
                 validMoves = [];
             } else if (validMoves.includes(id)) {
                 performMove(selectedId, id, gameMode);
-                return; // Stop here, renderPage will be called after move
+                // The move triggers renderPage() inside performMove, so we return here.
+                return; 
             } else if (piece && pieceColor === turn) {
                 selectedId = id;
                 validMoves = getValidMoves(r, c, board);
@@ -613,11 +613,14 @@ https://mangurajubhukya-cmyk.github.io/Play-Chess-game-/
 
         function renderChessBoard(gameMode) {
             const cells = [];
-            const flipped = gameMode === 'self' && turn === 'white';
-            const rows = flipped ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
-            const cols = flipped ? [7, 6, 5, 4, 5, 6, 7, 0] : [0, 1, 2, 3, 4, 5, 6, 7]; // Fixed col order for rendering
+            const flipped = gameMode === 'self' && turn === 'black'; // Flip for black's turn in self-play mode
+            const rows = flipped ? [0, 1, 2, 3, 4, 5, 6, 7] : [7, 6, 5, 4, 3, 2, 1, 0];
+            const cols = [0, 1, 2, 3, 4, 5, 6, 7]; // Files are always A-H regardless of rank direction
 
-            rows.forEach(r => {
+            // Adjust rows to render from the perspective of the current player
+            const renderRows = flipped ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
+
+            renderRows.forEach(r => {
                 cols.forEach(c => {
                     const id = coordsToId(r, c);
                     const pieceKey = board[r][c];
@@ -654,6 +657,7 @@ https://mangurajubhukya-cmyk.github.io/Play-Chess-game-/
                 <div
                     id="chess-board"
                     class="grid grid-cols-8 grid-rows-8 w-full max-w-lg border-8 border-gray-700 shadow-2xl rounded-lg overflow-hidden"
+                    style="transform: ${flipped ? 'rotate(180deg)' : 'none'}; transition: transform 0.5s;"
                 >
                     ${cells.join('')}
                 </div>
@@ -762,6 +766,13 @@ https://mangurajubhukya-cmyk.github.io/Play-Chess-game-/
             navigate('AI_PLAY');
         }
 
+        /** * FIX: Added the missing renderPage function.
+         * This function is crucial for triggering a UI update after a move is made.
+         */
+        function renderPage() {
+            navigate(currentPage);
+        }
+
         function navigate(page) {
             currentPage = page;
             const mainContent = document.getElementById('main-content');
@@ -772,7 +783,7 @@ https://mangurajubhukya-cmyk.github.io/Play-Chess-game-/
                     break;
                 case 'SELF_PLAY':
                 case 'AI_PLAY':
-                    // Reset game state when entering a new game mode
+                    // Initialize board if not yet done or if game is over
                     if (board.length === 0 || gameOver !== null) resetGame();
                     renderBoardContainer();
                     break;
@@ -791,6 +802,8 @@ https://mangurajubhukya-cmyk.github.io/Play-Chess-game-/
 
         // --- Initialization ---
         window.onload = () => {
+            // Ensure the initial game state is set up before navigating to HOME
+            resetGame(); 
             navigate('HOME');
         };
     </script>
